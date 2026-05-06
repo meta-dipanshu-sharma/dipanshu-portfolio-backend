@@ -31,7 +31,10 @@ async function bootstrap() {
     .setTitle('Dipanshu Sharma — Portfolio API')
     .setDescription('Backend for analytics, resume tracking, and contact form')
     .setVersion('1.0')
-    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'dashboard-key')
+    .addApiKey(
+      { type: 'apiKey', name: 'x-api-key', in: 'header' },
+      'dashboard-key',
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
