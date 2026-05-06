@@ -1,0 +1,95 @@
+// Prisma Schema — Dipanshu Sharma Portfolio Backend
+// Covers: Analytics, Resume Tracking, Contact Form
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────
+// FEATURE 1: ANALYTICS
+// Tracks page visits, section scrolls, chatbot questions, etc.
+// ─────────────────────────────────────────────────────────────
+
+model PageView {
+  id          String   @id @default(cuid())
+  sessionId   String   // anonymous browser session ID
+  path        String   // e.g. "/" or "/dashboard"
+  referrer    String?  // where they came from
+  userAgent   String?
+  country     String?  // from Vercel's geo headers
+  city        String?
+  device      String?  // "mobile" | "tablet" | "desktop"
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([sessionId])
+}
+
+model AnalyticsEvent {
+  id          String   @id @default(cuid())
+  sessionId   String
+  eventType   String   // "section_view" | "cta_click" | "chatbot_open" | "chatbot_question"
+  payload     Json?    // flexible — stores section name, question text, button label, etc.
+  country     String?
+  device      String?
+  createdAt   DateTime @default(now())
+
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([sessionId])
+}
+
+// ─────────────────────────────────────────────────────────────
+// FEATURE 2: RESUME DOWNLOAD TRACKING
+// Logs every resume download with context
+// ─────────────────────────────────────────────────────────────
+
+model ResumeDownload {
+  id          String   @id @default(cuid())
+  sessionId   String?  // optional — link to analytics session
+  referrer    String?  // which site sent them
+  country     String?
+  city        String?
+  device      String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([country])
+}
+
+// ─────────────────────────────────────────────────────────────
+// FEATURE 3: CONTACT FORM
+// Stores messages + tracks status through the queue pipeline
+// ─────────────────────────────────────────────────────────────
+
+model ContactMessage {
+  id          String        @id @default(cuid())
+  name        String
+  email       String
+  subject     String?
+  message     String
+  company     String?       // optional — "where do you work?"
+  status      ContactStatus @default(PENDING)
+  emailSentAt DateTime?     // when the notification email was sent
+  ipHash      String?       // hashed IP for spam detection — not raw IP
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
+}
+
+enum ContactStatus {
+  PENDING     // just received, in queue
+  PROCESSING  // worker picked it up
+  SENT        // email notification delivered
+  FAILED      // email delivery failed — needs manual check
+  SPAM        // flagged, ignored
+}
